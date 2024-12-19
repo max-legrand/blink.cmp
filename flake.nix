@@ -36,6 +36,21 @@
             inherit src version;
             useFetchCargoVendor = true;
             cargoHash = "sha256-XXI2jEoD6XbFNk3O8B6+aLzl1ZcJq1VinQXb+AOw8Rw=";
+            
+            buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+              pkgs.libiconv
+              pkgs.darwin.apple_sdk.frameworks.Security
+              pkgs.lua5_1
+            ];
+            
+            RUSTFLAGS = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+              -L ${pkgs.libiconv}/lib -liconv 
+              -L ${pkgs.lua5_1}/lib -llua
+            '';
+
+            BINDGEN_EXTRA_CLANG_ARGS = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+              "-I${pkgs.lua5_1}/include"
+            ];
 
             passthru.updateScript = pkgs.nix-update-script;
           };
@@ -76,8 +91,15 @@
           program = let
             buildScript = pkgs.writeShellApplication {
               name = "build-plugin";
-              runtimeInputs = with pkgs; [ fenix.minimal.toolchain gcc ];
+              runtimeInputs = with pkgs; [
+                fenix.minimal.toolchain
+                gcc
+                libiconv
+                lua5_1
+              ];
               text = ''
+                export RUSTFLAGS="-L ${pkgs.libiconv}/lib -liconv -L ${pkgs.lua5_1}/lib -llua"
+                export BINDGEN_EXTRA_CLANG_ARGS="-I${pkgs.lua5_1}/include"
                 cargo build --release
               '';
             };
@@ -92,6 +114,17 @@
             fenix.complete.toolchain
             rust-analyzer-nightly
             nix-update
+            libiconv
+            lua5_1
+          ];
+          
+          RUSTFLAGS = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+            -L ${pkgs.libiconv}/lib -liconv
+            -L ${pkgs.lua5_1}/lib -llua
+          '';
+          
+          BINDGEN_EXTRA_CLANG_ARGS = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            "-I${pkgs.lua5_1}/include"
           ];
         };
       };
