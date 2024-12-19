@@ -41,10 +41,14 @@
               pkgs.libiconv
               pkgs.darwin.apple_sdk.frameworks.Security
               pkgs.lua5_1
+            ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+              pkgs.lua5_1
             ];
-            
+
             RUSTFLAGS = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
               -L ${pkgs.libiconv}/lib -liconv 
+              -L ${pkgs.lua5_1}/lib -llua
+            '' + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
               -L ${pkgs.lua5_1}/lib -llua
             '';
 
@@ -94,11 +98,12 @@
               runtimeInputs = with pkgs; [
                 fenix.minimal.toolchain
                 gcc
-                libiconv
                 lua5_1
+              ] ++ lib.optionals stdenv.isDarwin [
+                libiconv
               ];
               text = ''
-                export RUSTFLAGS="-L ${pkgs.libiconv}/lib -liconv -L ${pkgs.lua5_1}/lib -llua"
+                export RUSTFLAGS="${if pkgs.stdenv.isDarwin then "-L ${pkgs.libiconv}/lib -liconv" else ""} -L ${pkgs.lua5_1}/lib -llua"
                 export BINDGEN_EXTRA_CLANG_ARGS="-I${pkgs.lua5_1}/include"
                 cargo build --release
               '';
@@ -114,12 +119,15 @@
             fenix.complete.toolchain
             rust-analyzer-nightly
             nix-update
-            libiconv
             lua5_1
+          ] ++ lib.optionals stdenv.isDarwin [
+            libiconv
           ];
           
           RUSTFLAGS = pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
             -L ${pkgs.libiconv}/lib -liconv
+            -L ${pkgs.lua5_1}/lib -llua
+          '' + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
             -L ${pkgs.lua5_1}/lib -llua
           '';
           
